@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+
+# Salidas generadas por los scrapers (datos, no código)
+*.csv
+*.json
+!package.json
