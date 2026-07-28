@@ -41,6 +41,20 @@ Mismo patrón de dos fases que el de portátiles, pero con un `student_score` di
 
 Salida: `tablets.csv`, `tablets.json`, `tablets_top_enriched.json`.
 
+### `scrape_gpus.py` — tarjetas gráficas por rendimiento/precio real
+
+```bash
+python scrape_gpus.py [TOP_N]
+```
+
+Mismo patrón de dos fases que los anteriores, pero con un `value_score` centrado en rendimiento real por euro en vez de núcleos/GB en bruto:
+- `GPU_RELATIVE_PERFORMANCE`: índice de rendimiento relativo por modelo de chip exacto (RTX 4090 = 100), agregado de benchmarks públicos en vez de comparar "más núcleos = mejor".
+- El score central es rendimiento relativo ÷ precio; VRAM y marca conocida suman como señales secundarias, no como el factor principal.
+- `alerta`: `SIN_DATO_BENCHMARK` (chip no reconocido, no se puede puntuar con fiabilidad), `INVESTIGAR` (gráfica potente con poca VRAM, puede quedarse corta), `COMPRA_SEGURA` (marca conocida + volumen de reseñas alto).
+- Las etiquetas de la ficha de producto (TDP, bus de memoria, etc.) varían según fabricante (ej. Palit usa "Consumo"/"Ancho de bus" donde otros usan "TDP"/"Bus de memoria"); el scraper prueba varias etiquetas conocidas por campo.
+
+Salida: `gpus.csv`, `gpus.json`, `gpus_top_enriched.json`.
+
 ## Requisitos
 
 Solo librería estándar de Python 3.8+ (`json`, `re`, `csv`, `time`, `sys`, `urllib.request`, `math`). No hace falta `pip install` nada.
