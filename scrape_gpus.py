@@ -21,64 +21,12 @@ import time
 import csv
 import urllib.request
 
+from gpu_common import extract_specs, is_known_brand
+
 BASE_URL = "https://www.pccomponentes.com/categorias/tarjetas-graficas"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
-}
-
-KNOWN_BRANDS_RE = re.compile(
-    r"ASUS|MSI|Gigabyte|Sapphire|PowerColor|PNY|Zotac|Palit|Gainward|XFX|Inno3D",
-    re.I,
-)
-
-# Modelo exacto de chip a partir del nombre del producto. Se buscan primero
-# los patrones más específicos (SUPER/Ti/XT/XTX/GRE) para no confundir p.ej.
-# "RTX 4070" con "RTX 4070 Ti".
-CHIP_RE = re.compile(
-    r"(RTX\s?50\d0\s?Ti|RTX\s?50\d0|"
-    r"RTX\s?40\d0\s?Ti\s?SUPER|RTX\s?40\d0\s?SUPER|RTX\s?40\d0\s?Ti|RTX\s?40\d0|"
-    r"RTX\s?30\d0\s?Ti|RTX\s?30\d0|"
-    r"GTX\s?16\d0\s?Ti|GTX\s?16\d0\s?SUPER|GTX\s?16\d0|"
-    r"RX\s?9\d{3}\s?XT|RX\s?9\d{3}|"
-    r"RX\s?7\d{3}\s?XTX|RX\s?7\d{3}\s?XT|RX\s?7\d{3}|"
-    r"RX\s?6\d{3}\s?XT|RX\s?6\d{3})",
-    re.I,
-)
-
-
-def normalize_chip(raw):
-    """Normaliza espacios/mayúsculas para que coincida con las claves de
-    GPU_RELATIVE_PERFORMANCE (ej. 'rtx 5060  ti' -> 'RTX 5060 Ti')."""
-    parts = re.sub(r"\s+", " ", raw.strip()).upper().split(" ")
-    # Ti/SUPER/XT/XTX/GRE con capitalización propia para que se lea bien en salida
-    fix = {"TI": "Ti", "SUPER": "SUPER", "XT": "XT", "XTX": "XTX", "GRE": "GRE"}
-    parts = [fix.get(p, p) for p in parts]
-    return " ".join(parts)
-
-
-# Índice de rendimiento relativo (aprox., no oficial) basado en benchmarks
-# agregados públicos (TechPowerUp / Notebookcheck, consultado jul-2026),
-# normalizado con RTX 4090 = 100. Sirve para no rankear por "más núcleos" o
-# "más GB" en bruto: dos tarjetas con el mismo chip pero distinto rendimiento
-# real por su TDP/clocks de fábrica quedan en la misma franja aquí, que es la
-# resolución que importa para decidir la compra. Puede variar ±10-15% según
-# el modelo concreto (versión OC vs. versión base) y no se actualiza sola.
-GPU_RELATIVE_PERFORMANCE = {
-    "RTX 5090": 145, "RTX 5080": 108, "RTX 5070 Ti": 95, "RTX 5070": 78,
-    "RTX 5060 Ti": 61, "RTX 5060": 50,
-    "RTX 4090": 100, "RTX 4080 Ti SUPER": 92, "RTX 4080 SUPER": 92, "RTX 4080": 88,
-    "RTX 4070 Ti SUPER": 82, "RTX 4070 Ti": 78, "RTX 4070 SUPER": 74, "RTX 4070": 68,
-    "RTX 4060 Ti": 55, "RTX 4060": 47,
-    "RTX 3090 Ti": 78, "RTX 3090": 74, "RTX 3080 Ti": 72, "RTX 3080": 68,
-    "RTX 3070 Ti": 60, "RTX 3070": 57, "RTX 3060 Ti": 50, "RTX 3060": 42,
-    "GTX 1660 Ti": 30, "GTX 1660 SUPER": 29, "GTX 1660": 26,
-    "RX 9070 XT": 90, "RX 9070": 80,
-    "RX 7900 XTX": 98, "RX 7900 XT": 88, "RX 7900 GRE": 78,
-    "RX 7800 XT": 70, "RX 7700 XT": 62, "RX 7600 XT": 48, "RX 7600": 44,
-    "RX 6950 XT": 75, "RX 6900 XT": 70, "RX 6800 XT": 65, "RX 6800": 60,
-    "RX 6750 XT": 55, "RX 6700 XT": 52, "RX 6650 XT": 42, "RX 6600 XT": 40,
-    "RX 6600": 36, "RX 6500 XT": 22, "RX 6400": 15,
 }
 
 
@@ -116,24 +64,6 @@ def parse_products(html):
             "rating_count": item.get("aggregateRating", {}).get("ratingCount"),
         })
     return products, total_pages
-
-
-def extract_specs(name):
-    chip_m = CHIP_RE.search(name)
-    chip = normalize_chip(chip_m.group(1)) if chip_m else None
-
-    vram_m = re.search(r"(\d{1,2})\s*GB\s*(GDDR\d\w*|DDR\d)?", name, re.I)
-    vram_gb = int(vram_m.group(1)) if vram_m else None
-
-    return {
-        "chip": chip,
-        "vram_gb": vram_gb,
-        "relative_perf": GPU_RELATIVE_PERFORMANCE.get(chip) if chip else None,
-    }
-
-
-def is_known_brand(name):
-    return bool(KNOWN_BRANDS_RE.search(name))
 
 
 def rating_count_of(p):
