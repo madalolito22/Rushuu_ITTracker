@@ -41,6 +41,26 @@ Mismo patrón de dos fases que el de portátiles, pero con un `student_score` di
 
 Salida: `tablets.csv`, `tablets.json`, `tablets_top_enriched.json`.
 
+### `scrape_minipcs.py` — mini PC para home-server (Jellyfin + Docker + IA local)
+
+```bash
+python scrape_minipcs.py [TOP_N]
+```
+
+- `TOP_N` (opcional, por defecto 15): a cuántos de los mejores clasificados se les visita además su ficha de producto para sacar RAM ampliable o soldada, conectividad (red 2.5GbE) y consumo/TDP.
+- El rango de precio se configura en `BASE_URL` (por defecto sin cota inferior y tope en 800€: si hay algo bueno y más barato, mejor no perdérselo).
+
+Mismo patrón de dos fases que los anteriores, con un `homelab_score` centrado en cuánto aguanta el equipo como servidor 24/7 (Jellyfin + varios contenedores Docker) y, si da para ello, inferencia local de LLMs pequeños/medianos:
+- La RAM es el factor dominante (más contenedores a la vez, y sobre todo el techo de tamaño de modelo de IA que se puede correr).
+- **Ryzen AI Max ("Strix Halo")** se detecta y puntúa aparte: memoria unificada soldada pero de ancho de banda muy superior a un DDR5 SO-DIMM normal, hoy por hoy la opción de referencia para IA local en este formato — por eso su RAM soldada NO se trata como señal negativa en `alert_label` (al revés que en un mini PC normal con techo bajo).
+- Bonus por transcodificación por hardware para Jellyfin: Quick Sync de Intel (el estándar de facto, incluidos los N100/N305 pese a su CPU floja) puntúa algo más que el VCN de AMD, que a su vez distingue generación moderna (series 7000/8000, Ryzen AI 200/300 — nomenclatura nueva que reinicia a 3 cifras, ver comentario de `RYZEN_AI_RE`) de generaciones antiguas.
+- NPU (Ryzen AI/Core Ultra/Copilot+) suma un bonus moderado, no dominante: el aprovechamiento real en Linux/Ollama todavía es limitado en la práctica.
+- Los N100/N150/N200/N305 tienen su propio escalón de CPU en vez de caer en el mismo cajón que Celeron/Pentium: su bajo consumo es una ventaja para un equipo encendido 24/7, no una carencia.
+- `alerta`: `NO_COMPRAR` (RAM soldada con techo ≤16GB, salvo Strix Halo), `INVESTIGAR` (specs top — NPU/Strix Halo/32GB+ — en marca sin trayectoria ni reseñas), `COMPRA_SEGURA` (marca conocida + RAM ampliable o generosa de fábrica + rating alto).
+- Marcas "de fiar" del nicho mezclan OEMs generalistas con las boutique chinas (GMKtec, Beelink, Minisforum...) que en este mercado concreto SÍ tienen trayectoria real — al revés que en portátiles.
+
+Salida: `minipcs.csv`, `minipcs.json`, `minipcs_top_enriched.json`.
+
 ### `scrape_gpus.py` — tarjetas gráficas por rendimiento/precio real
 
 ```bash
