@@ -14,6 +14,15 @@ para pasar el filtro sin necesitar un navegador headless completo. Es una
 dependencia opcional a propósito: si no está instalada, cae de vuelta a
 urllib normal (por si Cloudflare deja de bloquear, o para quien no quiera
 instalar nada). Instalación si hace falta: `pip install curl_cffi`.
+
+Importante: se reutiliza una única `Session` de curl_cffi (en vez de abrir
+una conexión nueva en cada llamada a fetch()) para que la cookie de
+Cloudflare (`cf_clearance`) que se obtiene al pasar el primer filtro se
+mande también en las peticiones siguientes — igual que haría un navegador
+normal navegando por las páginas del listado. Sin esto, cada petición
+"empieza de cero" ante Cloudflare y una fracción de ellas (páginas del
+listado, fichas de producto) puede seguir dando 403 aunque el fingerprint
+TLS ya esté arreglado.
 """
 import time
 import urllib.request
@@ -21,8 +30,10 @@ import urllib.request
 try:
     from curl_cffi import requests as _curl_requests
     HAS_CURL_CFFI = True
+    _session = _curl_requests.Session()
 except ImportError:
     HAS_CURL_CFFI = False
+    _session = None
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -36,7 +47,7 @@ def fetch(url, retries=4, headers=None):
     for attempt in range(retries):
         try:
             if HAS_CURL_CFFI:
-                resp = _curl_requests.get(url, headers=headers, impersonate="chrome124", timeout=20)
+                resp = _session.get(url, headers=headers, impersonate="chrome124", timeout=20)
                 if resp.status_code >= 400:
                     raise RuntimeError(f"HTTP {resp.status_code} (curl_cffi)")
                 return resp.text
