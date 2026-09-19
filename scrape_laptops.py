@@ -17,16 +17,13 @@ Genera:
 """
 import json
 import re
-import time
 import csv
 import sys
-import urllib.request
+import time
+
+from http_fetch import fetch
 
 BASE_URL = "https://www.pccomponentes.com/portatiles?price_from=451&price_to=783"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
-}
 
 CPU_TIERS = [
     (re.compile(r"Ryzen\s*9|Core\s*i9|Apple\s*M3\s*Pro|Apple\s*M3\s*Max|Apple\s*M4", re.I), 95),
@@ -67,18 +64,6 @@ CINEBENCH_R23_MULTI = {
 }
 # Factor para llevar el benchmark real a la misma escala que el resto del score (0-~55)
 CINEBENCH_SCALE = 300
-
-def fetch(url, retries=4):
-    last_err = None
-    for attempt in range(retries):
-        req = urllib.request.Request(url, headers=HEADERS)
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                return resp.read().decode("utf-8", errors="replace")
-        except Exception as e:
-            last_err = e
-            time.sleep(2 + attempt * 3)
-    raise last_err
 
 
 def parse_products(html):

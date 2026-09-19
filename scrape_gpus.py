@@ -19,28 +19,11 @@ import re
 import sys
 import time
 import csv
-import urllib.request
 
 from gpu_common import extract_specs, is_known_brand
+from http_fetch import fetch
 
 BASE_URL = "https://www.pccomponentes.com/categorias/tarjetas-graficas"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
-}
-
-
-def fetch(url, retries=4):
-    last_err = None
-    for attempt in range(retries):
-        req = urllib.request.Request(url, headers=HEADERS)
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                return resp.read().decode("utf-8", errors="replace")
-        except Exception as e:
-            last_err = e
-            time.sleep(2 + attempt * 3)
-    raise last_err
 
 
 def parse_products(html):
