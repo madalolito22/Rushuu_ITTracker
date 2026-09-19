@@ -22,15 +22,12 @@ import re
 import sys
 import time
 import csv
-import urllib.request
+
+from http_fetch import fetch
 
 # Sin cota inferior a propósito: si hay algo bueno y más barato que el tope,
 # mejor. El tope es el presupuesto real de la compra.
 BASE_URL = "https://www.pccomponentes.com/categorias/mini-pcs?price_to=800"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
-}
 
 # Tier de CPU por familia/gama. Deliberadamente los N-series (N100/N150/N200/
 # N305) NO se meten en el mismo saco que Celeron/Pentium de gama laptop barata:
@@ -76,19 +73,6 @@ RYZEN_AI_RE = re.compile(r"Ryzen\s*AI\s*(?!Max)", re.I)
 
 INTEL_FAMILY_RE = re.compile(r"Intel|Core|N3(05|00)|N2(00)|N1(50|00)|N95\b|Celeron|Pentium", re.I)
 AMD_FAMILY_RE = re.compile(r"Ryzen|AMD", re.I)
-
-
-def fetch(url, retries=4):
-    last_err = None
-    for attempt in range(retries):
-        req = urllib.request.Request(url, headers=HEADERS)
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                return resp.read().decode("utf-8", errors="replace")
-        except Exception as e:
-            last_err = e
-            time.sleep(2 + attempt * 3)
-    raise last_err
 
 
 def parse_products(html):

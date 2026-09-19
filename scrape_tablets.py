@@ -20,31 +20,15 @@ import re
 import sys
 import time
 import csv
-import urllib.request
+
+from http_fetch import fetch
 
 BASE_URL = "https://www.pccomponentes.com/tablets?price_from=150&price_to=300"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
-}
 
 KNOWN_BRANDS_RE = re.compile(r"Samsung|Lenovo|Xiaomi|Honor|Huawei|Apple", re.I)
 STYLUS_RE = re.compile(r"stylus|s\s*pen|l[aá]piz", re.I)
 KEYBOARD_RE = re.compile(r"teclado|keyboard", re.I)
 CELLULAR_RE = re.compile(r"\b4G\b|\b5G\b", re.I)
-
-
-def fetch(url, retries=4):
-    last_err = None
-    for attempt in range(retries):
-        req = urllib.request.Request(url, headers=HEADERS)
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                return resp.read().decode("utf-8", errors="replace")
-        except Exception as e:
-            last_err = e
-            time.sleep(2 + attempt * 3)
-    raise last_err
 
 
 def parse_products(html):

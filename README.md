@@ -103,12 +103,17 @@ Salida: `gpu_comparison.csv`, `gpu_comparison.json`.
 
 `scrape_gpus.py` y `scrape_gpus_cex.py` comparten el parseo de chip/VRAM y la tabla de rendimiento relativo (`GPU_RELATIVE_PERFORMANCE`) desde este módulo, para que las dos tiendas puntúen con el mismo criterio y sean comparables entre sí. La tabla cubre desde Maxwell/Polaris (lo habitual en el mercado de segunda mano) hasta la generación actual; los chips sin dato de benchmark fiable se quedan fuera a propósito y salen marcados como `SIN_DATO_BENCHMARK` en vez de inventar un número.
 
+## `http_fetch.py` — piezas compartidas
+
+`scrape_laptops.py`, `scrape_tablets.py`, `scrape_gpus.py` y `scrape_minipcs.py` (todos los que pegan contra pccomponentes.com) comparten desde aquí su `fetch()`. Ver la nota de Cloudflare/403 más abajo.
+
 ## Requisitos
 
-Solo librería estándar de Python 3.8+ (`json`, `re`, `csv`, `time`, `sys`, `urllib.request`, `math`). No hace falta `pip install` nada.
+Solo librería estándar de Python 3.8+ (`json`, `re`, `csv`, `time`, `sys`, `urllib.request`, `math`) — **excepto** si pccomponentes te devuelve 403 (ver nota de Cloudflare abajo), en cuyo caso hace falta `pip install curl_cffi`.
 
 ## Notas importantes
 
+- **Bloqueo 403 de Cloudflare (pccomponentes.com):** en algún momento después de escribir los primeros scrapers, pccomponentes empezó a devolver `HTTP 403: Forbidden` (challenge "Just a moment...") a las peticiones hechas con `urllib` a pelo — confirmado que no es cosa de qué categoría se scrapea (pasa igual en `/portatiles`, `/tablets` y `/categorias/mini-pcs`) ni de los headers (mismo resultado probando varios `User-Agent`), así que lo que está detectando es el fingerprint TLS/HTTP2 del cliente. `http_fetch.py` usa [`curl_cffi`](https://github.com/lexiforest/curl_cffi) (`impersonate="chrome124"`) si está instalado, que imita el fingerprint de un Chrome real y con eso basta para pasar el filtro; si no está instalado, cae de vuelta a `urllib` normal (por si el bloqueo desaparece, o para quien no quiera instalar nada extra). Si te encuentras con el 403: `pip install curl_cffi` y vuelve a lanzar el script, no hace falta tocar nada más.
 - **Los scripts son de uso personal/puntual**, no para scraping masivo o continuo: incluyen `time.sleep()` entre peticiones y reintentos con backoff para no machacar el servidor. Si vas a tocar el código, mantén ese espaciado.
 - Los benchmarks de CPU (`CINEBENCH_R23_MULTI`) son promedios agregados de Notebookcheck en la fecha en que se escribieron — pueden variar ±15% según el chasis/refrigeración concreto del equipo, y no se actualizan solos.
 - El scraping de pccomponentes se apoya en que la web incruste un bloque JSON-LD (`microdata-product-list-script`) en el listado y una tabla de specs con `<strong>Campo</strong>` en la ficha de producto. Si la web cambia esa estructura, los regex de extracción dejarán de encontrar coincidencias (los campos saldrán como `None`/`sin dato`) y habrá que actualizar los patrones en `DETAIL_FIELD_PATTERNS`.
